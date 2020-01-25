@@ -20,7 +20,7 @@ namespace CryptoTransaction
             var encodingProvider = CodePagesEncodingProvider.Instance;
             Encoding.RegisterProvider(encodingProvider);
 
-            using var stream = File.Open(@"C:\Users\joecr\Desktop\transaction_history.xlsx", FileMode.Open, FileAccess.Read);
+            using var stream = File.Open(@"C:\Users\User\Desktop\transaction_history.xlsx", FileMode.Open, FileAccess.Read);
             using var reader = ExcelReaderFactory.CreateReader(stream);
 
             var transactions = new List<Transaction>();
@@ -63,6 +63,8 @@ namespace CryptoTransaction
                 }
                 Console.WriteLine();
             } while (reader.NextResult());
+
+            //transactions = transactions.Where(t => t.Date <= new DateTime(2019, 12, 31, 23, 59, 59)).ToList();
 
 
             var cashDeposits = transactions.Where(t => t.Type == "Credit" && (t.Specification.Contains("ACH") || t.Specification.Contains("Wire"))).Sum(t => t.AmountUsd);
@@ -182,7 +184,9 @@ namespace CryptoTransaction
 
             Console.WriteLine();
 
-            var holdingsValueBtc = priceData.data["BTC"].ohlc.c * balanceBtc;
+            var bitcoinValue = priceData.data["BTC"].ohlc.c;
+
+            var holdingsValueBtc = bitcoinValue * balanceBtc;
             var holdingsValueEth = priceData.data["ETH"].ohlc.c * balanceEth;
             var holdingsValueZec = priceData.data["ZEC"].ohlc.c * balanceZec;
             var holdingsValueBch = priceData.data["BCH"].ohlc.c * balanceBch;
@@ -191,8 +195,17 @@ namespace CryptoTransaction
             var holdingsValue = holdingsValueBch + holdingsValueBtc + holdingsValueEth
                 + holdingsValueLtc + holdingsValueZec;
 
-            Console.WriteLine($"Realized Gains: {usdHoldings - netDeposit}");
-            Console.WriteLine($"Gains: {usdHoldings + holdingsValue - netDeposit}");
+            var holdingsBitcoinValueUsd = usdHoldings / bitcoinValue;
+            var holdingsBitcoinValueEth = holdingsValueEth / bitcoinValue;
+            var holdingsBitcoinValueZec = holdingsValueZec / bitcoinValue;
+            var holdingsBitcoinValueBch = holdingsValueBch / bitcoinValue;
+            var holdingsBitcoinValueLtc = holdingsValueLtc / bitcoinValue;
+
+            var equivalentBtcHoldings = balanceBtc + holdingsBitcoinValueUsd + holdingsBitcoinValueEth + holdingsBitcoinValueZec + holdingsBitcoinValueBch + holdingsBitcoinValueLtc;
+
+            Console.WriteLine($"Equivalent Bitcoin Holdings: {equivalentBtcHoldings}");
+            Console.WriteLine($"Holdings Value: {usdHoldings + holdingsValue}");
+            Console.WriteLine($"Total Gains: {usdHoldings + holdingsValue - netDeposit}");
 
             Console.ReadKey();
         }
